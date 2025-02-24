@@ -5,8 +5,10 @@
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <vector>
 
-#include "Map.hpp"
+#include "../Player.hpp"
+#include "Object.hpp"
 
 namespace engine
 {
@@ -29,13 +31,14 @@ namespace engine
         void render();
 
     private:
+        std::vector<std::unique_ptr<Object>> mObjects;
+        std::unique_ptr<class Player> mPlayer;
+
         std::unique_ptr<sf::RenderWindow> mWindow;
 
         std::string mWindowTitle;
 
         std::uint16_t mScreenWidth;
         std::uint16_t mScreenHeight;
-
-        std::unique_ptr<Map> mMap;
     };
 }

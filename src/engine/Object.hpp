@@ -15,5 +15,8 @@ namespace engine
         virtual void Init() = 0;
         virtual void Update(const float deltaTime) = 0;
         virtual void Render(sf::RenderWindow& window) = 0;
+
+    protected:
+        sf::Color Color;
     };
 }
