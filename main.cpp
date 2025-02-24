@@ -1,4 +1,4 @@
-#include "src/Game.hpp"
+#include "src/engine/Game.hpp"
 
 const std::string TITLE = "Art gallery ghost";
 const std::uint16_t WIDTH = 1280;

@@ -14,7 +14,9 @@ endif()
 
 find_package(SFML 3 REQUIRED COMPONENTS Window Graphics Audio Network)
 
-file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/*.cpp")
 
 add_executable(ghost main.cpp ${SOURCES})
 

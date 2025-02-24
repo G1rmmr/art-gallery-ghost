@@ -4,7 +4,7 @@
 
 #include <cstdint>
 
-#include "Object.hpp"
+#include "engine/Object.hpp"
 
 class Map : public engine::Object
 {
@@ -20,8 +20,6 @@ private:
     void generateRandomWalls();
 
 private:
-    sf::Color mColor;
-
     float mMapWidth;
     float mMapHeight;
 };
