@@ -1,21 +1,14 @@
-#include <SFML/Audio.hpp>
-#include <SFML/Graphics.hpp>
+#include "src/Game.hpp"
+
+const std::string TITLE = "Art gallery ghost";
+const std::uint16_t WIDTH = 1280;
+const std::uint16_t HEIGHT = 720;
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode({800, 600}), "SFML window");
-
-    while(window.isOpen())
-    {
-        while(const std::optional event = window.pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-            {
-                window.close();
-            }
-                
-        }
-        window.clear();
-        window.display();
-    }
+    engine::Game game(TITLE, WIDTH, HEIGHT);
+    
+    game.Run();
+    game.Clear();
+    return 0;
 }
