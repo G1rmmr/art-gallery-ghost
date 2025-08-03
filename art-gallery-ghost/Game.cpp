@@ -9,7 +9,7 @@
 
 using namespace core;
 
-const float MAP_SIZE = 300.f;
+const float MAP_SIZE = 3000.f;
 
 const std::uint8_t FPS = 60;
 
@@ -20,11 +20,6 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     , screenHeight(height) {
     window = std::make_unique<sf::RenderWindow>(
         sf::VideoMode({screenWidth, screenHeight}), windowTitle);
-
-    sf::View view;
-    view.setCenter({0.f, 0.f});
-    view.setSize({static_cast<float>(width), static_cast<float>(height)});
-    window->setView(view);
 
     deltaTime = 1.f / FPS;
 
@@ -60,7 +55,7 @@ void Game::handleEvents() {
                 window->close();
         }
 
-        if(auto controller = std::dynamic_pointer_cast<Controller>(
+        if(const auto controller = std::dynamic_pointer_cast<Controller>(
             player->GetComponent("controller").lock())) {
             controller->HandleEvents();
         }
@@ -72,6 +67,18 @@ void Game::update() {
         object->Update(deltaTime);
 
     player->Update(deltaTime);
+
+    if(const auto movement = std::dynamic_pointer_cast<Movement>(
+        player->GetComponent("movement").lock())) {
+
+        sf::View view;
+        view.setCenter(movement->GetPos());
+        view.setSize({
+            static_cast<float>(screenWidth),
+            static_cast<float>(screenHeight)});
+
+        window->setView(view);
+    }
 }
 
 void core::Game::render() {
