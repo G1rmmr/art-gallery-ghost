@@ -67,6 +67,10 @@ void Game::handleEvents() {
             if(keyPressed->scancode == sf::Keyboard::Scan::Escape)
                 window->close();
         }
+        else if(const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            if(mousePressed->button == sf::Mouse::Button::Right)
+                flash->ToggleSwitch();
+        }
 
         if(const auto controller = std::dynamic_pointer_cast<Controller>(
             player->GetComponent("controller").lock())) {
@@ -107,9 +111,7 @@ void Game::update() {
             const float fanWidth = 45.0f;
             flash->SetAngles(angle - fanWidth / 2.0f, angle + fanWidth / 2.0f);
         }
-            
     }
-
     flash->Update(deltaTime);
 }
 
@@ -121,8 +123,9 @@ void core::Game::render() {
         }
     }
 
-    std::dynamic_pointer_cast<Render>(
-        flash->GetComponent("render").lock())->Draw(*window);
+    if(flash->GetSwitch())
+        std::dynamic_pointer_cast<Render>(
+            flash->GetComponent("render").lock())->Draw(*window);
 
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);

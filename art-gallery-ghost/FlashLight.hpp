@@ -17,6 +17,9 @@ public:
 
     void Update(const float deltaTime) override;
 
+    void ToggleSwitch() { isSwitchOn = isSwitchOn ? false : true; }
+    bool GetSwitch() const { return isSwitchOn; }
+
     void SetAngles(const float start, const float end) {
         startAngle = start;
         endAngle = end;
@@ -25,6 +28,8 @@ public:
 private:
     float startAngle;
     float endAngle;
+
+    bool isSwitchOn = false;
 
     sf::VertexArray getVertices(const sf::Vector2f pos, const sf::Color& color) const;
 };
