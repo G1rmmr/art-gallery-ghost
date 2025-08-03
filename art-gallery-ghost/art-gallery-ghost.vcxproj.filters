@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일\components">
+      <UniqueIdentifier>{2098b518-476c-4d92-aa65-2cc050e45dad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\components">
+      <UniqueIdentifier>{e8e758cc-a884-4de7-bd8c-2f28ee46edb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\core">
+      <UniqueIdentifier>{03b3620d-a842-4a08-8bc3-bb53fd07089e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\objects">
+      <UniqueIdentifier>{d24b8843-d4a0-49ea-8b00-e5a9ef431090}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\objects">
+      <UniqueIdentifier>{63fa4856-5df2-4c8c-a333-34ad74335540}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Game.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Controller.cpp">
+      <Filter>소스 파일\components</Filter>
+    </ClCompile>
+    <ClCompile Include="Player.cpp">
+      <Filter>소스 파일\objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Map.cpp">
+      <Filter>소스 파일\objects</Filter>
+    </ClCompile>
+    <ClCompile Include="Render.cpp">
+      <Filter>소스 파일\components</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Controller.hpp">
+      <Filter>헤더 파일\components</Filter>
+    </ClInclude>
+    <ClInclude Include="Movement.hpp">
+      <Filter>헤더 파일\components</Filter>
+    </ClInclude>
+    <ClInclude Include="Render.hpp">
+      <Filter>헤더 파일\components</Filter>
+    </ClInclude>
+    <ClInclude Include="Component.hpp">
+      <Filter>헤더 파일\core</Filter>
+    </ClInclude>
+    <ClInclude Include="Object.hpp">
+      <Filter>헤더 파일\core</Filter>
+    </ClInclude>
+    <ClInclude Include="Game.hpp">
+      <Filter>헤더 파일\core</Filter>
+    </ClInclude>
+    <ClInclude Include="Map.hpp">
+      <Filter>헤더 파일\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.hpp">
+      <Filter>헤더 파일\objects</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
