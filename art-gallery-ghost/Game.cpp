@@ -134,7 +134,6 @@ void Game::update() {
 
             view->setCenter(camPos);
         }
-            
 
         flashMovement->SetPos(playerMovement->GetPos() +
             sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
