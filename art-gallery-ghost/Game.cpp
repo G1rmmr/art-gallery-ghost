@@ -29,16 +29,12 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
 
-    flash = std::make_unique<FlashLight>(0.f, 0.f, 45.f, 90.f);
-
     sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
     sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
     sf::Vector2f direction = worldMousePos - sf::Vector2f(0.f, 0.f);
 
     float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-
-    const float fanWidth = 45.0f;
-    flash->SetAngles(angle - fanWidth / 2.0f, angle + fanWidth / 2.0f);
+    flash = std::make_unique<FlashLight>(0.f, 0.f, angle);
 
     player = std::make_unique<Player>(0.f, 0.f);
 }
@@ -70,6 +66,17 @@ void Game::handleEvents() {
         else if(const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
             if(mousePressed->button == sf::Mouse::Button::Right)
                 flash->ToggleSwitch();
+        }
+        else if(const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
+            if(mouseWheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
+                if(flash->GetSwitch()) {
+                    float delta = mouseWheelScrolled->delta;
+
+                    flash->AdjustRadius(delta * 50.0f);
+                    flash->AdjustWidth(-delta * 5.0f);
+                    flash->AdjustAlpha(static_cast<int>(delta * 20.0f));
+                }
+            }
         }
 
         if(const auto controller = std::dynamic_pointer_cast<Controller>(
@@ -107,9 +114,7 @@ void Game::update() {
             sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
 
             float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-
-            const float fanWidth = 45.0f;
-            flash->SetAngles(angle - fanWidth / 2.0f, angle + fanWidth / 2.0f);
+            flash->SetAngles(angle);
         }
     }
     flash->Update(deltaTime);
