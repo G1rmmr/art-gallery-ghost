@@ -26,7 +26,8 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     window->setFramerateLimit(FPS);
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
- 
+
+    flash = std::make_unique<FlashLight>(0.f, 0.f, 45.f, 90.f);
     player = std::make_unique<Player>(0.f, 0.f);
 }
 
@@ -67,18 +68,27 @@ void Game::update() {
         object->Update(deltaTime);
 
     player->Update(deltaTime);
+    
 
-    if(const auto movement = std::dynamic_pointer_cast<Movement>(
-        player->GetComponent("movement").lock())) {
+    const auto playerMovement = std::dynamic_pointer_cast<Movement>(
+        player->GetComponent("movement").lock());
 
+    if(playerMovement) {
         sf::View view;
-        view.setCenter(movement->GetPos());
+        view.setCenter(playerMovement->GetPos());
         view.setSize({
             static_cast<float>(screenWidth),
             static_cast<float>(screenHeight)});
 
         window->setView(view);
+
+        if(const auto flashMovement = std::dynamic_pointer_cast<Movement>(
+            flash->GetComponent("movement").lock())) 
+            flashMovement->SetPos(playerMovement->GetPos() + 
+                sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
     }
+
+    flash->Update(deltaTime);
 }
 
 void core::Game::render() {
@@ -88,6 +98,9 @@ void core::Game::render() {
             render->Draw(*window);
         }
     }
+
+    std::dynamic_pointer_cast<Render>(
+        flash->GetComponent("render").lock())->Draw(*window);
 
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);

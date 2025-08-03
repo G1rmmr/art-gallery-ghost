@@ -13,13 +13,22 @@ Player::Player(const float x, const float y) {
 
     this->AddComponent(std::make_unique<Controller>(this));
 
+    sf::CircleShape shape(SHAPE_RADIUS);
+    shape.setFillColor(PLAYER_COLOR);
+
     this->AddComponent(std::make_unique<Render>(
         this,
-        PLAYER_COLOR,
-        std::make_unique<sf::CircleShape>(SHAPE_RADIUS)));
+        std::make_unique<sf::CircleShape>(shape)));
 }
 
 void Player::Update(const float deltaTime) {
-    for(auto& [_, component] : this->components)
-        component->Update(deltaTime);
+    this->components["movement"]->Update(deltaTime);
+
+    auto movement = std::dynamic_pointer_cast<Movement>(this->GetComponent("movement").lock());
+    auto render = std::dynamic_pointer_cast<Render>(this->GetComponent("render").lock());
+
+    if(movement && render) {
+        sf::CircleShape* circle = render->GetShape<sf::CircleShape>();
+        if(circle) circle->setPosition(movement->GetPos());
+    }
 }

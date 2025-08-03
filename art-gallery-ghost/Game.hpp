@@ -9,6 +9,7 @@
 
 #include "Player.hpp"
 #include "Object.hpp"
+#include "FlashLight.hpp"
 
 namespace core {
     class Game {
@@ -24,9 +25,11 @@ namespace core {
 
     private:
         std::vector<std::unique_ptr<Object>> objects;
-        std::unique_ptr<Player> player;
 
-        std::unique_ptr<sf::RenderWindow> window;
+        std::unique_ptr<Player> player{nullptr};
+        std::unique_ptr<FlashLight> flash{nullptr};
+
+        std::unique_ptr<sf::RenderWindow> window{nullptr};
 
         std::string windowTitle;
 
