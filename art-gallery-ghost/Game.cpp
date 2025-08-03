@@ -6,6 +6,7 @@
 #include "Movement.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 using namespace core;
 
@@ -26,6 +27,14 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
 
     window->setFramerateLimit(FPS);
     window->setMouseCursorVisible(false);
+
+    view = std::make_unique<sf::View>();
+    view->setCenter({0.f, 0.f});
+    view->setSize({
+        static_cast<float>(screenWidth) * zoomLevel,
+        static_cast<float>(screenHeight) * zoomLevel});
+
+    window->setView(*view);
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
 
@@ -62,6 +71,13 @@ void Game::handleEvents() {
         if(const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
             if(keyPressed->scancode == sf::Keyboard::Scan::Escape)
                 window->close();
+
+            else if(keyPressed->scancode == sf::Keyboard::Scan::Space)
+                isFollowingPlayer = true;
+        }
+        else if(const auto* keyReleased = event->getIf<sf::Event::KeyReleased>()) {
+            if(keyReleased->scancode == sf::Keyboard::Scan::Space) 
+                isFollowingPlayer = false;
         }
         else if(const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
             if(mousePressed->button == sf::Mouse::Button::Right)
@@ -69,12 +85,20 @@ void Game::handleEvents() {
         }
         else if(const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
             if(mouseWheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
-                if(flash->GetSwitch()) {
-                    float delta = mouseWheelScrolled->delta;
+                float delta = mouseWheelScrolled->delta;
 
-                    flash->AdjustRadius(delta * 50.0f);
-                    flash->AdjustWidth(-delta * 5.0f);
-                    flash->AdjustAlpha(static_cast<int>(delta * 20.0f));
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::LShift)) {
+                    zoomLevel -= delta * ZOOM_SPEED;
+                    zoomLevel = std::max(std::min(zoomLevel, MAX_ZOOM), MIN_ZOOM);
+
+                    view->setSize({
+                        static_cast<float>(screenWidth) * zoomLevel,
+                        static_cast<float>(screenHeight) * zoomLevel});
+                }
+                else if(flash->GetSwitch()) {
+                    flash->AdjustRadius(delta);
+                    flash->AdjustWidth(-delta);
+                    flash->AdjustAlpha(static_cast<int>(delta));
                 }
             }
         }
@@ -95,29 +119,35 @@ void Game::update() {
     const auto playerMovement = std::dynamic_pointer_cast<Movement>(
         player->GetComponent("movement").lock());
 
-    if(playerMovement) {
-        sf::View view;
-        view.setCenter(playerMovement->GetPos());
-        view.setSize({
-            static_cast<float>(screenWidth),
-            static_cast<float>(screenHeight)});
+    const auto flashMovement = std::dynamic_pointer_cast<Movement>(
+        flash->GetComponent("movement").lock());
 
-        window->setView(view);
+    if(playerMovement && flashMovement) {
+        if(isFollowingPlayer) {
+            sf::Vector2f playerPos = playerMovement->GetPos();
+            sf::Vector2f direction = playerPos - camPos;
 
-        if(const auto flashMovement = std::dynamic_pointer_cast<Movement>(
-            flash->GetComponent("movement").lock())) {
-            flashMovement->SetPos(playerMovement->GetPos() +
-                sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
+            camPos += direction * FOLLOW_SPEED * deltaTime;
 
-            sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
-            sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
-            sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
+            float smoothing = std::exp(-FOLLOW_SPEED * deltaTime);
+            camPos = camPos * smoothing + playerPos * (1.0f - smoothing);
 
-            float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-            flash->SetAngles(angle);
+            view->setCenter(camPos);
         }
+            
+
+        flashMovement->SetPos(playerMovement->GetPos() +
+            sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
+
+        sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+        sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+        sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
+
+        float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
+        flash->SetAngles(angle);
     }
     flash->Update(deltaTime);
+    window->setView(*view);
 }
 
 void core::Game::render() {

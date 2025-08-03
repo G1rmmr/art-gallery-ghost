@@ -10,15 +10,17 @@
 
 class FlashLight : public core::Object {
 public:
-    constexpr static sf::Color FLASH_COLOR = sf::Color{255, 215, 0, };
-    constexpr static float MAX_RADIUS = 1000.f;
+    constexpr static sf::Color FLASH_COLOR = sf::Color{255, 215, 0};
+    constexpr static float MAX_RADIUS = 3000.f;
     constexpr static float MIN_RADIUS = 500.f;
 
     constexpr static float MAX_FAN_WIDTH = 100.f;
-    constexpr static float MIN_FAN_WIDTH = 30.f;
+    constexpr static float MIN_FAN_WIDTH = 10.f;
 
-    constexpr static std::uint8_t MAX_ALPHA = 255.f;
-    constexpr static std::uint8_t MIN_ALPHA = 64.f;
+    constexpr static std::uint8_t MAX_ALPHA = 255;
+    constexpr static std::uint8_t MIN_ALPHA = 64;
+
+    constexpr static std::uint8_t WHEEL_LEVEL = 12;
 
     FlashLight() = default;
     FlashLight(const float x, const float y, const float startAngle);
@@ -32,7 +34,8 @@ public:
     }
 
     void AdjustWidth(const float delta) {
-        fanWidth = std::max(MIN_FAN_WIDTH, std::min(fanWidth + delta, MAX_FAN_WIDTH));
+        fanWidth = std::max(MIN_FAN_WIDTH, 
+            std::min(fanWidth + delta * (MAX_FAN_WIDTH - MIN_FAN_WIDTH) / WHEEL_LEVEL, MAX_FAN_WIDTH));
     }
 
     void SetRadius(const float radius) {
@@ -40,7 +43,8 @@ public:
     }
 
     void AdjustRadius(const float delta) {
-        radius = std::max(MIN_RADIUS, std::min(radius + delta, MAX_RADIUS));
+        radius = std::max(MIN_RADIUS,
+            std::min(radius + delta * (MAX_RADIUS - MIN_RADIUS) / WHEEL_LEVEL, MAX_RADIUS));
     }
 
     void SetAngles(const float start) {
@@ -52,7 +56,7 @@ public:
     }
 
     void AdjustAlpha(const int delta) {
-        int newAlpha = static_cast<int>(alpha) + delta;
+        int newAlpha = static_cast<int>(alpha) + delta * (MAX_ALPHA - MIN_ALPHA) / WHEEL_LEVEL;
         alpha = std::max(static_cast<int>(MIN_ALPHA), std::min(newAlpha, static_cast<int>(MAX_ALPHA)));
     }
 
@@ -60,10 +64,10 @@ public:
 
 private:
     float fanWidth = MIN_FAN_WIDTH;
-    float radius = MIN_RADIUS;
+    float radius = MAX_RADIUS;
     float startAngle = 0.f;
 
-    std::uint8_t alpha = MIN_ALPHA;
+    std::uint8_t alpha = MAX_ALPHA;
 
     bool isSwitchOn = false;
 
