@@ -45,8 +45,8 @@
     <ClCompile Include="Map.cpp">
       <Filter>소스 파일\objects</Filter>
     </ClCompile>
-    <ClCompile Include="Render.cpp">
-      <Filter>소스 파일\components</Filter>
+    <ClCompile Include="FlashLight.cpp">
+      <Filter>소스 파일\objects</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -72,6 +72,9 @@
       <Filter>헤더 파일\objects</Filter>
     </ClInclude>
     <ClInclude Include="Player.hpp">
+      <Filter>헤더 파일\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="FlashLight.hpp">
       <Filter>헤더 파일\objects</Filter>
     </ClInclude>
   </ItemGroup>

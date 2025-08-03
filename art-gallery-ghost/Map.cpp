@@ -27,7 +27,9 @@ void Map::generateRandomWalls() {
     for(std::size_t i = 0; i < EDGE_POINT; ++i)
         convex->setPoint(i, points[i]);
 
-    this->AddComponent(std::make_unique<Render>(this, MAP_COLOR, std::move(convex)));
+    convex->setFillColor(MAP_COLOR);
+
+    this->AddComponent(std::make_unique<Render>(this, std::move(convex)));
 }
 
 void Map::generateRandomPoints(std::vector<sf::Vector2f>& points) const {

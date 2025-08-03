@@ -10,6 +10,7 @@
 using namespace core;
 
 const float MAP_SIZE = 3000.f;
+constexpr float PI = 3.141592f;
 
 const std::uint8_t FPS = 60;
 
@@ -24,9 +25,17 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     deltaTime = 1.f / FPS;
 
     window->setFramerateLimit(FPS);
+    window->setMouseCursorVisible(false);
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
- 
+
+    sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+    sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+    sf::Vector2f direction = worldMousePos - sf::Vector2f(0.f, 0.f);
+
+    float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
+    flash = std::make_unique<FlashLight>(0.f, 0.f, angle);
+
     player = std::make_unique<Player>(0.f, 0.f);
 }
 
@@ -54,6 +63,21 @@ void Game::handleEvents() {
             if(keyPressed->scancode == sf::Keyboard::Scan::Escape)
                 window->close();
         }
+        else if(const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            if(mousePressed->button == sf::Mouse::Button::Right)
+                flash->ToggleSwitch();
+        }
+        else if(const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
+            if(mouseWheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
+                if(flash->GetSwitch()) {
+                    float delta = mouseWheelScrolled->delta;
+
+                    flash->AdjustRadius(delta * 50.0f);
+                    flash->AdjustWidth(-delta * 5.0f);
+                    flash->AdjustAlpha(static_cast<int>(delta * 20.0f));
+                }
+            }
+        }
 
         if(const auto controller = std::dynamic_pointer_cast<Controller>(
             player->GetComponent("controller").lock())) {
@@ -68,17 +92,32 @@ void Game::update() {
 
     player->Update(deltaTime);
 
-    if(const auto movement = std::dynamic_pointer_cast<Movement>(
-        player->GetComponent("movement").lock())) {
+    const auto playerMovement = std::dynamic_pointer_cast<Movement>(
+        player->GetComponent("movement").lock());
 
+    if(playerMovement) {
         sf::View view;
-        view.setCenter(movement->GetPos());
+        view.setCenter(playerMovement->GetPos());
         view.setSize({
             static_cast<float>(screenWidth),
             static_cast<float>(screenHeight)});
 
         window->setView(view);
+
+        if(const auto flashMovement = std::dynamic_pointer_cast<Movement>(
+            flash->GetComponent("movement").lock())) {
+            flashMovement->SetPos(playerMovement->GetPos() +
+                sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
+
+            sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+            sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+            sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
+
+            float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
+            flash->SetAngles(angle);
+        }
     }
+    flash->Update(deltaTime);
 }
 
 void core::Game::render() {
@@ -88,6 +127,10 @@ void core::Game::render() {
             render->Draw(*window);
         }
     }
+
+    if(flash->GetSwitch())
+        std::dynamic_pointer_cast<Render>(
+            flash->GetComponent("render").lock())->Draw(*window);
 
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);

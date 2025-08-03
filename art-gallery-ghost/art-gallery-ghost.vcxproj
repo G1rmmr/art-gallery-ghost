@@ -132,15 +132,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Controller.cpp" />
+    <ClCompile Include="FlashLight.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="Player.cpp" />
-    <ClCompile Include="Render.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Component.hpp" />
     <ClInclude Include="Controller.hpp" />
+    <ClInclude Include="FlashLight.hpp" />
     <ClInclude Include="Game.hpp" />
     <ClInclude Include="Map.hpp" />
     <ClInclude Include="Movement.hpp" />
