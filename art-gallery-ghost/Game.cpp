@@ -10,6 +10,7 @@
 using namespace core;
 
 const float MAP_SIZE = 3000.f;
+constexpr float PI = 3.141592f;
 
 const std::uint8_t FPS = 60;
 
@@ -24,10 +25,21 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     deltaTime = 1.f / FPS;
 
     window->setFramerateLimit(FPS);
+    window->setMouseCursorVisible(false);
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
 
     flash = std::make_unique<FlashLight>(0.f, 0.f, 45.f, 90.f);
+
+    sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+    sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+    sf::Vector2f direction = worldMousePos - sf::Vector2f(0.f, 0.f);
+
+    float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
+
+    const float fanWidth = 45.0f;
+    flash->SetAngles(angle - fanWidth / 2.0f, angle + fanWidth / 2.0f);
+
     player = std::make_unique<Player>(0.f, 0.f);
 }
 
@@ -68,7 +80,6 @@ void Game::update() {
         object->Update(deltaTime);
 
     player->Update(deltaTime);
-    
 
     const auto playerMovement = std::dynamic_pointer_cast<Movement>(
         player->GetComponent("movement").lock());
@@ -83,9 +94,20 @@ void Game::update() {
         window->setView(view);
 
         if(const auto flashMovement = std::dynamic_pointer_cast<Movement>(
-            flash->GetComponent("movement").lock())) 
-            flashMovement->SetPos(playerMovement->GetPos() + 
+            flash->GetComponent("movement").lock())) {
+            flashMovement->SetPos(playerMovement->GetPos() +
                 sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
+
+            sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+            sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+            sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
+
+            float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
+
+            const float fanWidth = 45.0f;
+            flash->SetAngles(angle - fanWidth / 2.0f, angle + fanWidth / 2.0f);
+        }
+            
     }
 
     flash->Update(deltaTime);

@@ -17,6 +17,11 @@ public:
 
     void Update(const float deltaTime) override;
 
+    void SetAngles(const float start, const float end) {
+        startAngle = start;
+        endAngle = end;
+    };
+
 private:
     float startAngle;
     float endAngle;
