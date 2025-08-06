@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "art-gallery-ghost",
+  "version": "1.0.0",
+  "description": "vcpkg dependencies",
+  "license": "MIT",
+  "dependencies": [
+    {
+      "name": "sfml"
+    },
+  ]
+}
