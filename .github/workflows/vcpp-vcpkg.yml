@@ -1,37 +1,83 @@
-name: MSBuild
+name: SFML Build
 
 on:
   pull_request:
     branches: [ "master" ]
 
 env:
-  # Path to the solution file relative to the root of the project.
-  SOLUTION_FILE_PATH: .
-
-  # Configuration type to build.
-  # You can convert this to a build matrix if you need coverage of multiple configuration types.
-  # https://docs.github.com/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-  BUILD_CONFIGURATION: Release
-
-permissions:
-  contents: read
+  VCPKG_ROOT: ${{ github.workspace }}/vcpkg
+  BUILD_TYPE: Release
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
-    - name: Add MSBuild to PATH
+    # vcpkg 캐시 설정 (빌드 시간 단축)
+    - name: Cache vcpkg
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ env.VCPKG_ROOT }}
+          !${{ env.VCPKG_ROOT }}/buildtrees
+          !${{ env.VCPKG_ROOT }}/packages
+          !${{ env.VCPKG_ROOT }}/downloads
+        key: vcpkg-x64-windows-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          vcpkg-x64-windows-
+
+    # vcpkg 설치
+    - name: Setup vcpkg
+      run: |
+        if (!(Test-Path "${{ env.VCPKG_ROOT }}")) {
+          git clone https://github.com/Microsoft/vcpkg.git ${{ env.VCPKG_ROOT }}
+        }
+        cd ${{ env.VCPKG_ROOT }}
+        .\bootstrap-vcpkg.bat
+        .\vcpkg.exe integrate install
+
+    # Visual Studio 환경 설정
+    - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: '17.0'
 
+    # SFML 및 기타 의존성 설치
+    - name: Install SFML dependencies
+      run: |
+        cd ${{ env.VCPKG_ROOT }}
+        .\vcpkg.exe install sfml:x64-windows
+
+    # NuGet 패키지 복원 (있는 경우)
     - name: Restore NuGet packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
+      run: |
+        if (Test-Path "*.sln") {
+          nuget restore *.sln
+        }
 
-    - name: Build
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      # Add additional options to the MSBuild command line here (like platform or verbosity level).
-      # See https://docs.microsoft.com/visualstudio/msbuild/msbuild-command-line-reference
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} ${{env.SOLUTION_FILE_PATH}}
+    # 프로젝트 빌드
+    - name: Build solution
+      run: |
+        if (Test-Path "*.sln") {
+          msbuild *.sln /p:Configuration=${{ env.BUILD_TYPE }} /p:Platform=x64 /p:VcpkgTriplet=x64-windows /p:VcpkgRoot=${{ env.VCPKG_ROOT }}
+        } else {
+          echo "No solution file found. Please add a Visual Studio solution file (.sln)"
+          exit 1
+        }
+
+    # 게임 실행 파일 업로드
+    - name: Upload game executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: art-gallery-ghost-${{ env.BUILD_TYPE }}
+        path: |
+          x64/${{ env.BUILD_TYPE }}/*.exe
+          x64/${{ env.BUILD_TYPE }}/*.dll
+          assets/
+          resources/
+        retention-days: 7
