@@ -2,11 +2,20 @@
   "$schema": "https://raw.githubusercontent.com/Microsoft/vcpkg/master/scripts/vcpkg.schema.json",
   "name": "art-gallery-ghost",
   "version": "1.0.0",
-  "description": "vcpkg dependencies",
+  "description": "Top-down shooter game with SFML",
   "license": "MIT",
   "dependencies": [
     {
-      "name": "sfml"
-    },
-  ]
+      "name": "sfml",
+      "version>=": "2.6.0"
+    }
+  ],
+  "features": {
+    "audio": {
+      "description": "Enable audio support",
+      "dependencies": [
+        "openal-soft"
+      ]
+    }
+  }
 }
