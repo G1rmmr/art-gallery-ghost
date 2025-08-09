@@ -46,10 +46,10 @@
       <Filter>소스 파일\objects</Filter>
     </ClCompile>
     <ClCompile Include="FlashLight.cpp">
-      <Filter>소스 파일\objects</Filter>
+      <Filter>소스 파일\components</Filter>
     </ClCompile>
     <ClCompile Include="Gun.cpp">
-      <Filter>소스 파일\objects</Filter>
+      <Filter>소스 파일\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -78,10 +78,10 @@
       <Filter>헤더 파일\objects</Filter>
     </ClInclude>
     <ClInclude Include="FlashLight.hpp">
-      <Filter>헤더 파일\objects</Filter>
+      <Filter>헤더 파일\components</Filter>
     </ClInclude>
     <ClInclude Include="Gun.hpp">
-      <Filter>헤더 파일\objects</Filter>
+      <Filter>헤더 파일\components</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

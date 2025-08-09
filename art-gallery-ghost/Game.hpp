@@ -9,8 +9,6 @@
 
 #include "Object.hpp"
 #include "Player.hpp"
-#include "FlashLight.hpp"
-#include "Gun.hpp"
 
 namespace core {
     class Game {
@@ -33,8 +31,6 @@ namespace core {
         std::vector<std::unique_ptr<Object>> objects;
 
         std::unique_ptr<Player> player{nullptr};
-        std::unique_ptr<FlashLight> flash{nullptr};
-        std::unique_ptr<Gun> gun{nullptr};
 
         std::unique_ptr<sf::RenderWindow> window{nullptr};
         std::unique_ptr<sf::View> view{nullptr};

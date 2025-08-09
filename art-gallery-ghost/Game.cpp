@@ -5,6 +5,7 @@
 #include "Render.hpp"
 #include "Movement.hpp"
 #include "Gun.hpp"
+#include "FlashLight.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -38,15 +39,6 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     window->setView(*view);
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
-
-    sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
-    sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
-    sf::Vector2f direction = worldMousePos - sf::Vector2f(0.f, 0.f);
-
-    float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-    flash = std::make_unique<FlashLight>(0.f, 0.f, angle);
-
-    gun = std::make_unique<Gun>(0.f, 0.f);
 
     player = std::make_unique<Player>(0.f, 0.f);
 }
@@ -87,11 +79,14 @@ void Game::handleEvents() {
                 sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
                 sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
 
-                gun->Fire(worldMousePos);
+                auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+                if(gun) gun->Fire(worldMousePos);
             }
 
-            if(mousePressed->button == sf::Mouse::Button::Right)
-                flash->ToggleSwitch();
+            if(mousePressed->button == sf::Mouse::Button::Right) {
+                auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+                if(flashlight) flashlight->ToggleSwitch();
+            }
         }
         else if(const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
             if(mouseWheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
@@ -105,10 +100,13 @@ void Game::handleEvents() {
                         static_cast<float>(screenWidth) * zoomLevel,
                         static_cast<float>(screenHeight) * zoomLevel});
                 }
-                else if(flash->GetSwitch()) {
-                    flash->AdjustRadius(delta);
-                    flash->AdjustWidth(-delta);
-                    flash->AdjustAlpha(static_cast<int>(delta));
+                else {
+                    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+                    if(flashlight && flashlight->GetSwitch()) {
+                        flashlight->AdjustRadius(delta);
+                        flashlight->AdjustWidth(-delta);
+                        flashlight->AdjustAlpha(static_cast<int>(delta));
+                    }
                 }
             }
         }
@@ -125,15 +123,11 @@ void Game::update() {
         object->Update(deltaTime);
 
     player->Update(deltaTime);
-    gun->Update(deltaTime);
-
+    
     const auto playerMovement = std::dynamic_pointer_cast<Movement>(
         player->GetComponent("movement").lock());
 
-    const auto flashMovement = std::dynamic_pointer_cast<Movement>(
-        flash->GetComponent("movement").lock());
-
-    if(playerMovement && flashMovement) {
+    if(playerMovement) {
         if(isFollowingPlayer) {
             sf::Vector2f playerPos = playerMovement->GetPos();
             sf::Vector2f direction = playerPos - camPos;
@@ -146,17 +140,16 @@ void Game::update() {
             view->setCenter(camPos);
         }
 
-        flashMovement->SetPos(playerMovement->GetPos() +
-            sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
-
         sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
         sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
         sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
 
         float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-        flash->SetAngles(angle);
+        
+        auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+        if(flashlight) flashlight->SetAngles(angle);
     }
-    flash->Update(deltaTime);
+
     window->setView(*view);
 }
 
@@ -168,14 +161,16 @@ void core::Game::render() {
         }
     }
 
-    if(gun->GetFiring())
-        std::dynamic_pointer_cast<Render>(
-            gun->GetComponent("render").lock())->Draw(*window);
-
-    if(flash->GetSwitch())
-        std::dynamic_pointer_cast<Render>(
-            flash->GetComponent("render").lock())->Draw(*window);
-
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);
+
+    auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+    if(gun && gun->HasActiveBullets()) {
+        gun->Render(*window);
+    }
+
+    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+    if(flashlight && flashlight->GetSwitch()) {
+        flashlight->Render(*window);
+    }
 }

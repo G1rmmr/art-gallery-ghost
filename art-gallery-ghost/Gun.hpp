@@ -1,36 +1,45 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-
-#include "Object.hpp"
-
+#include "Component.hpp"
 #include <memory>
 #include <vector>
 
-class Gun : public core::Object {
-public:
-    constexpr static sf::Color BULLET_COLOR = sf::Color::Red;
+namespace core {
+    class Gun : public Component {
+    public:
+        constexpr static sf::Color BULLET_COLOR = sf::Color::Red;
+        constexpr static float BULLET_RADIUS = 5.f;
+        constexpr static float BULLET_SPEED = 3000.f;
+        constexpr static int MAX_AMMO = 10;
+        constexpr static float BULLET_LIFETIME = 3.0f;
 
-    constexpr static float SHAPE_RADIUS = 5.f;
-    constexpr static float MOVE_SPEED = 3000.f;
+        struct Bullet {
+            sf::Vector2f position;
+            sf::Vector2f direction;
+            float lifetime;
+            bool active;
 
-    constexpr static int MAX_AMMO = 10;
+            Bullet(sf::Vector2f pos, sf::Vector2f dir) 
+                : position(pos), direction(dir), lifetime(BULLET_LIFETIME), active(true) {}
+        };
 
-    Gun() = default;
-    Gun(const float x, const float y);
+        Gun(Object* obj) : Component(obj) {}
 
-    void Update(const float deltaTime) override;
-    void Fire(const sf::Vector2f target);
+        void Update(const float deltaTime) override;
+        std::string_view GetTag() const override { return tag; }
 
-    bool GetFiring() const { return nowFiring; }
-    void SetFiring(const bool nowFiring) { this->nowFiring = nowFiring; }
+        void Fire(const sf::Vector2f& target);
+        void Render(sf::RenderWindow& window) const;
 
-    int GetAmmo() const { return currAmmo; }
+        bool HasActiveBullets() const;
+        int GetAmmo() const { return currAmmo; }
+        void Reload() { currAmmo = MAX_AMMO; }
 
-    void Reload() { currAmmo = MAX_AMMO; }
-
-private:
-    sf::Vector2f direction;
-    int currAmmo = MAX_AMMO;
-    bool nowFiring = false;
-};
+    private:
+        constexpr static std::string_view tag = "gun";
+        
+        std::vector<Bullet> bullets;
+        int currAmmo = MAX_AMMO;
+    };
+}
