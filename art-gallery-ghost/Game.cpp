@@ -4,6 +4,7 @@
 #include "Controller.hpp"
 #include "Render.hpp"
 #include "Movement.hpp"
+#include "Gun.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -45,6 +46,8 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
     flash = std::make_unique<FlashLight>(0.f, 0.f, angle);
 
+    gun = std::make_unique<Gun>(0.f, 0.f);
+
     player = std::make_unique<Player>(0.f, 0.f);
 }
 
@@ -80,6 +83,13 @@ void Game::handleEvents() {
                 isFollowingPlayer = false;
         }
         else if(const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
+            if(mousePressed->button == sf::Mouse::Button::Left) {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+                sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+
+                gun->Fire(worldMousePos);
+            }
+
             if(mousePressed->button == sf::Mouse::Button::Right)
                 flash->ToggleSwitch();
         }
@@ -115,6 +125,7 @@ void Game::update() {
         object->Update(deltaTime);
 
     player->Update(deltaTime);
+    gun->Update(deltaTime);
 
     const auto playerMovement = std::dynamic_pointer_cast<Movement>(
         player->GetComponent("movement").lock());
@@ -156,6 +167,10 @@ void core::Game::render() {
             render->Draw(*window);
         }
     }
+
+    if(gun->GetFiring())
+        std::dynamic_pointer_cast<Render>(
+            gun->GetComponent("render").lock())->Draw(*window);
 
     if(flash->GetSwitch())
         std::dynamic_pointer_cast<Render>(
