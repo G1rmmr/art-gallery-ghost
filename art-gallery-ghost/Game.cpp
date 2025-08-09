@@ -147,7 +147,8 @@ void Game::update() {
 
         sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
         sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
-        sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
+        sf::Vector2f direction = worldMousePos 
+            - (playerMovement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
 
         float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
         
@@ -158,7 +159,7 @@ void Game::update() {
     window->setView(*view);
 }
 
-void core::Game::render() {
+void Game::render() {
     for(const auto& object : objects) {
         if(auto render = std::dynamic_pointer_cast<Render>(
             object->GetComponent("render").lock())) {
@@ -169,13 +170,58 @@ void core::Game::render() {
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);
 
-    auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
-    if(gun && gun->HasActiveBullets()) {
-        gun->Render(*window);
-    }
-
     auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
     if(flashlight && flashlight->GetSwitch()) {
         flashlight->Render(*window);
     }
+
+    auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+    if(gun) {
+        if(gun->HasActiveBullets())
+            gun->Render(*window);
+
+        mouseCursorRender(gun.get());
+    }
+}
+
+void Game::mouseCursorRender(Gun * gun) {
+    sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+    sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+
+    const float GAUGE_RADIUS = 20.f;
+    const float GAUGE_THICKNESS = 4.f;
+    const int POINT_COUNT = 60;
+
+    int currentAmmo = gun->GetAmmo();
+    float ammoRatio = static_cast<float>(currentAmmo) / Gun::MAX_AMMO;
+
+    sf::VertexArray gauge(sf::PrimitiveType::TriangleStrip, (static_cast<std::size_t>(POINT_COUNT * ammoRatio) + 1) * 2);
+
+    sf::Color gaugeColor = sf::Color(
+        static_cast<std::uint8_t>(255 * (1.0f - ammoRatio)),
+        static_cast<std::uint8_t>(255 * ammoRatio),
+        0,
+        200
+    );
+
+    for(int i = 0; i <= POINT_COUNT * ammoRatio; ++i) {
+        float angle = (static_cast<float>(i) / POINT_COUNT) * 2.0f * PI - PI / 2.0f;
+
+        sf::Vector2f outerPoint(
+            worldMousePos.x + std::cos(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f),
+            worldMousePos.y + std::sin(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f)
+        );
+
+        sf::Vector2f innerPoint(
+            worldMousePos.x + std::cos(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f),
+            worldMousePos.y + std::sin(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f)
+        );
+
+        gauge[static_cast<size_t>(i) * 2].position = outerPoint;
+        gauge[static_cast<size_t>(i) * 2].color = gaugeColor;
+        gauge[static_cast<size_t>(i) * 2 + 1].position = innerPoint;
+        gauge[static_cast<size_t>(i) * 2 + 1].color = gaugeColor;
+    }
+
+    window->draw(gauge);
 }

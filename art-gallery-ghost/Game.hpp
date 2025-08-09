@@ -9,6 +9,7 @@
 
 #include "Object.hpp"
 #include "Player.hpp"
+#include "Gun.hpp"
 
 namespace core {
     class Game {
@@ -50,5 +51,6 @@ namespace core {
         void handleEvents();
         void update();
         void render();
+        void mouseCursorRender(Gun* gun);
     };
 }
