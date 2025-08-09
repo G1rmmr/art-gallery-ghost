@@ -186,7 +186,7 @@ void Game::render() {
 
 void Game::mouseCursorRender(Gun * gun) {
     sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
-    sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+    sf::Vector2f screenMousePos = static_cast<sf::Vector2f>(mousePos);
 
     const float GAUGE_RADIUS = 20.f;
     const float GAUGE_THICKNESS = 4.f;
@@ -208,13 +208,13 @@ void Game::mouseCursorRender(Gun * gun) {
         float angle = (static_cast<float>(i) / POINT_COUNT) * 2.0f * PI - PI / 2.0f;
 
         sf::Vector2f outerPoint(
-            worldMousePos.x + std::cos(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f),
-            worldMousePos.y + std::sin(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f)
+            screenMousePos.x + std::cos(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f),
+            screenMousePos.y + std::sin(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f)
         );
 
         sf::Vector2f innerPoint(
-            worldMousePos.x + std::cos(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f),
-            worldMousePos.y + std::sin(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f)
+            screenMousePos.x + std::cos(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f),
+            screenMousePos.y + std::sin(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f)
         );
 
         gauge[static_cast<size_t>(i) * 2].position = outerPoint;
@@ -223,5 +223,9 @@ void Game::mouseCursorRender(Gun * gun) {
         gauge[static_cast<size_t>(i) * 2 + 1].color = gaugeColor;
     }
 
+    sf::View originalView = window->getView();
+    window->setView(window->getDefaultView());
+    
     window->draw(gauge);
+    window->setView(originalView);
 }
