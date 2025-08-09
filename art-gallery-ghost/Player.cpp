@@ -45,26 +45,8 @@ void Player::Update(const float deltaTime) {
 }
 
 void Player::RenderComponents(sf::RenderWindow& window) {
-    RenderFlashLight(window);
     RenderGun(window);
-}
-
-void Player::RenderFlashLight(sf::RenderWindow& window) {
-    auto flashlight = std::dynamic_pointer_cast<FlashLight>(this->GetComponent("flashlight").lock());
-    if (!flashlight || !flashlight->GetSwitch()) return;
-
-    sf::VertexArray lightGradient = flashlight->GetLightGradient();
-    sf::VertexArray innerLight = flashlight->GetInnerLight();
-    
-    if (lightGradient.getVertexCount() > 0) {
-        sf::RenderStates lightStates = flashlight->GetLightBlendMode();
-        window.draw(lightGradient, lightStates);
-    }
-    
-    if (innerLight.getVertexCount() > 0) {
-        sf::RenderStates innerStates = flashlight->GetInnerBlendMode();
-        window.draw(innerLight, innerStates);
-    }
+    // Flashlight 렌더링은 Game::renderDarknessEffect에서 처리
 }
 
 void Player::RenderGun(sf::RenderWindow& window) {
@@ -81,4 +63,8 @@ void Player::RenderGun(sf::RenderWindow& window) {
                                bullet.position.y - Gun::BULLET_RADIUS});
         window.draw(bulletShape);
     }
+}
+
+void Player::RenderFlashLight(sf::RenderWindow& window) {
+    // 이 함수는 이제 Game::renderDarknessEffect에서 처리하므로 비워둡니다.
 }

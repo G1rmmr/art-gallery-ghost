@@ -1,13 +1,71 @@
-#include "FlashLight.hpp"
+﻿#include "FlashLight.hpp"
 #include "Movement.hpp"
 #include "Object.hpp"
 #include "Player.hpp"
+#include "Collision.hpp"
 
 #include <cmath>
 
 using namespace core;
 
 constexpr float PI = 3.141592f;
+
+sf::VertexArray FlashLight::createClippedWedge(float sizeScale, const sf::Color& baseColor) const {
+    sf::Vector2f worldCenter;
+    
+    if (useCustomCenter) {
+        worldCenter = centerPosition;
+    } else {
+        auto movement = std::dynamic_pointer_cast<Movement>(owner->GetComponent("movement").lock());
+        if (!movement) return sf::VertexArray();
+        worldCenter = movement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+    }
+    
+    const int pointCount = 60;
+    float fanWidth = GetWidth() * PI / 180.0f;
+    float maxDistance = GetRadius() * sizeScale;
+    float directionAngle = GetAngles() * PI / 180.0f;
+
+    float angleStep = fanWidth / static_cast<float>(pointCount - 1);
+
+    sf::VertexArray wedge(sf::PrimitiveType::TriangleFan);
+    
+    sf::Color centerColor = baseColor;
+    centerColor.a = std::min(static_cast<int>(baseColor.a) + 50, 255);
+    wedge.append(sf::Vertex{worldCenter, centerColor});
+
+    for (int i = 0; i < pointCount; ++i) {
+        float angle = directionAngle + i * angleStep;
+        sf::Vector2f rayDirection(std::cos(angle), std::sin(angle));
+        
+        // ⭐ 핵심: 맵 충돌 검사로 실제 교차점 계산
+        sf::Vector2f intersection = findIntersection(worldCenter, rayDirection, maxDistance, mapCollision);
+
+        float actualDistance = std::sqrt(std::pow(intersection.x - worldCenter.x, 2) + std::pow(intersection.y - worldCenter.y, 2));
+        float normalizedDistance = (maxDistance > 0) ? actualDistance / maxDistance : 0;
+        float attenuation = 1.0f - std::pow(normalizedDistance, 1.8f);
+
+        sf::Color edgeColor = baseColor;
+        edgeColor.a = static_cast<std::uint8_t>(baseColor.a * attenuation);
+
+        if(normalizedDistance > 0.7f) {
+            edgeColor.r = std::min(static_cast<int>(edgeColor.r) + 15, 255);
+            edgeColor.g = std::max(static_cast<int>(edgeColor.g) - 10, 0);
+        }
+        
+        wedge.append(sf::Vertex{intersection, edgeColor});
+    }
+    
+    return wedge;
+}
+
+sf::VertexArray FlashLight::GetLightGradient() const {
+    return createClippedWedge(0.8f, OUTER_GLOW_COLOR);
+}
+
+sf::VertexArray FlashLight::GetInnerLight() const {
+    return createClippedWedge(0.5f, INNER_CORE_COLOR);
+}
 
 sf::VertexArray FlashLight::getVertices(const sf::Vector2f pos, const sf::Color& color) const {
     sf::VertexArray vertices(sf::PrimitiveType::TriangleFan);
@@ -24,70 +82,6 @@ sf::VertexArray FlashLight::getVertices(const sf::Vector2f pos, const sf::Color&
     }
     
     return vertices;
-}
-
-sf::VertexArray FlashLight::GetLightGradient() const {
-    if(!isSwitchOn) return sf::VertexArray();
-
-    auto movement = std::dynamic_pointer_cast<Movement>(owner->GetComponent("movement").lock());
-    if(!movement) return sf::VertexArray();
-
-    sf::Vector2f pos = movement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
-    
-    sf::VertexArray lightGradient(sf::PrimitiveType::TriangleFan);
-    
-    sf::Color centerColor = sf::Color(FLASH_COLOR.r, FLASH_COLOR.g, FLASH_COLOR.b, alpha);
-    lightGradient.append({pos, centerColor});
-
-    const float angleStep = fanWidth / static_cast<float>(POINT_COUNT - 1);
-
-    for(unsigned int i = 1; i < POINT_COUNT; ++i) {
-        float angle = startAngle + (i - 1) * angleStep;
-        float x = pos.x + radius * std::cos(angle * PI / 180.0f);
-        float y = pos.y + radius * std::sin(angle * PI / 180.0f);
-
-        sf::Color edgeColor = sf::Color(FLASH_COLOR.r, FLASH_COLOR.g, FLASH_COLOR.b, 0);
-        lightGradient.append({{x, y}, edgeColor});
-    }
-    
-    return lightGradient;
-}
-
-sf::VertexArray FlashLight::GetInnerLight() const {
-    if(!isSwitchOn) return sf::VertexArray();
-
-    auto movement = std::dynamic_pointer_cast<Movement>(owner->GetComponent("movement").lock());
-    if(!movement) return sf::VertexArray();
-
-    sf::Vector2f pos = movement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
-    
-    sf::VertexArray innerLight(sf::PrimitiveType::TriangleFan);
-    
-    float innerRadius = radius * 0.4f;
-    std::uint8_t innerAlpha = std::min(static_cast<int>(alpha) + 50, 255);
-    
-    sf::Color innerCenterColor = sf::Color(FLASH_COLOR.r, FLASH_COLOR.g, FLASH_COLOR.b, innerAlpha);
-    innerLight.append({pos, innerCenterColor});
-
-    const float angleStep = fanWidth / static_cast<float>(POINT_COUNT - 1);
-
-    for(unsigned int i = 1; i < POINT_COUNT; ++i) {
-        float angle = startAngle + (i - 1) * angleStep;
-        float x = pos.x + innerRadius * std::cos(angle * PI / 180.0f);
-        float y = pos.y + innerRadius * std::sin(angle * PI / 180.0f);
-
-        sf::Color innerEdgeColor = sf::Color(FLASH_COLOR.r, FLASH_COLOR.g, FLASH_COLOR.b, innerAlpha / 3);
-        innerLight.append({{x, y}, innerEdgeColor});
-    }
-    
-    return innerLight;
-}
-
-sf::Vector2f FlashLight::GetPosition() const {
-    auto movement = std::dynamic_pointer_cast<Movement>(owner->GetComponent("movement").lock());
-    if(!movement) return sf::Vector2f(0.f, 0.f);
-    
-    return movement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
 }
 
 sf::RenderStates FlashLight::GetLightBlendMode() const {
@@ -108,3 +102,11 @@ sf::RenderStates FlashLight::GetInnerBlendMode() const {
     innerLightStates.blendMode = sf::BlendAdd;
     return innerLightStates;
 }
+
+void FlashLight::Render(sf::RenderTarget& target) const {
+    if (!GetSwitch()) return;
+    target.draw(GetLightGradient(), GetLightBlendMode());
+    target.draw(GetInnerLight(), GetInnerBlendMode());
+}
+
+FlashLight::FlashLight(core::Object * obj) : core::Component(obj) {}

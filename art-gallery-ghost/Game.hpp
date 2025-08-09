@@ -1,11 +1,13 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+#include <SFML/Window/Cursor.hpp>
 
 #include <cstdint>
 #include <string>
 #include <memory>
 #include <vector>
+#include <tuple>
 
 #include "Object.hpp"
 #include "Player.hpp"
@@ -37,10 +39,9 @@ namespace core {
 
         std::unique_ptr<sf::RenderWindow> window{nullptr};
         std::unique_ptr<sf::View> view{nullptr};
+        std::unique_ptr<sf::Cursor> cursor{nullptr};
 
-        sf::RenderTexture darknessTexture;
-        sf::RenderTexture lightTexture;
-
+        sf::RenderTexture darknessTexture; // 암흑 텍스처 복원
         sf::Vector2f camPos{0.f, 0.f};
 
         std::string windowTitle;
@@ -54,14 +55,17 @@ namespace core {
 
         bool isFollowingPlayer = false;
 
+        sf::Vector2f lastMouseDirection{1.0f, 0.0f}; // 마우스 방향 저장용
+
         void handleEvents();
         void update();
         void render();
         void mouseCursorRender(Gun* gun);
         
         void handleCollisions();
-        void checkFlashlightMapCollision(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos);
-        void clipFlashlightToMap(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos);
-        void renderDarknessEffect();
+        void renderDarknessEffect(); // 암흑 효과 렌더링 함수 복원
+
+        sf::Vector2f findMapIntersection(const sf::Vector2f& start, const sf::Vector2f& direction, 
+            float maxDistance, Collision* mapCollision);
     };
 }

@@ -2,12 +2,16 @@
 
 #include <SFML/Graphics.hpp>
 #include "Component.hpp"
+#include "Collision.hpp"
 #include <memory>
 #include <algorithm>
+#include <functional>
 
 class FlashLight : public core::Component{
 public:
     constexpr static sf::Color FLASH_COLOR = sf::Color{255, 215, 0};
+    constexpr static sf::Color OUTER_GLOW_COLOR = sf::Color(255, 225, 170, 100);
+    constexpr static sf::Color INNER_CORE_COLOR = sf::Color(255, 250, 230, 180);
     constexpr static float MAX_RADIUS = 3000.f;
     constexpr static float MIN_RADIUS = 500.f;
     constexpr static float MAX_FAN_WIDTH = 100.f;
@@ -16,7 +20,9 @@ public:
     constexpr static std::uint8_t MIN_ALPHA = 127;
     constexpr static std::uint8_t WHEEL_LEVEL = 12;
 
-    FlashLight(core::Object * obj) : core::Component(obj) {}
+    using IntersectionFinder = std::function<sf::Vector2f(const sf::Vector2f&, const sf::Vector2f&, float, Collision*)>;
+
+    FlashLight(core::Object * obj);
 
     void Update(const float deltaTime) override {};
     std::string_view GetTag() const override { return tag; }
@@ -63,11 +69,25 @@ public:
         alpha = std::max(static_cast<int>(MIN_ALPHA), std::min(newAlpha, static_cast<int>(MAX_ALPHA)));
     }
 
+    void SetMapCollision(Collision* mapCollision, IntersectionFinder finder) {
+        this->mapCollision = mapCollision;
+        this->findIntersection = std::move(finder);
+    }
+
+    void SetCenterPosition(const sf::Vector2f& position) {
+        centerPosition = position;
+        useCustomCenter = true;
+    }
+
+    void UsePlayerCenter() {
+        useCustomCenter = false;
+    }
+
     sf::VertexArray GetLightGradient() const;
     sf::VertexArray GetInnerLight() const;
-    sf::Vector2f GetPosition() const;
     sf::RenderStates GetLightBlendMode() const;
     sf::RenderStates GetInnerBlendMode() const;
+    void Render(sf::RenderTarget& target) const;
 
 private:
     constexpr static std::string_view tag = "flashlight";
@@ -78,6 +98,11 @@ private:
     float startAngle = 0.f;
     std::uint8_t alpha = MIN_ALPHA;
     bool isSwitchOn = false;
+    Collision* mapCollision = nullptr;
+    IntersectionFinder findIntersection;
+    sf::Vector2f centerPosition{0.f, 0.f};
+    bool useCustomCenter = false;
 
+    sf::VertexArray createClippedWedge(float sizeScale, const sf::Color& baseColor) const;
     sf::VertexArray getVertices(const sf::Vector2f pos, const sf::Color& color) const;
 };

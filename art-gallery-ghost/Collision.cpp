@@ -184,28 +184,46 @@ bool Collision::pointInConvex(const sf::Vector2f& point) const {
 }
 
 sf::Vector2f Collision::GetClosestPointOnBoundary(const sf::Vector2f& point) const {
-    if (type != CollisionType::Convex || vertices.empty()) {
-        return center; // fallback
-    }
-    
-    sf::Vector2f closestPoint = vertices[0];
-    float minDistance = std::numeric_limits<float>::max();
-    
-    // 각 edge에 대해 가장 가까운 점 찾기
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        size_t next = (i + 1) % vertices.size();
-        sf::Vector2f edgeClosest = GetClosestPointOnLineSegment(point, vertices[i], vertices[next]);
+    if (type == CollisionType::Convex && !vertices.empty()) {
+        sf::Vector2f closestPoint = vertices[0];
+        float minDistance = std::numeric_limits<float>::max();
         
-        sf::Vector2f diff = point - edgeClosest;
-        float distance = diff.x * diff.x + diff.y * diff.y;
-        
-        if (distance < minDistance) {
-            minDistance = distance;
-            closestPoint = edgeClosest;
+        // 각 edge에 대해 가장 가까운 점 찾기
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            size_t next = (i + 1) % vertices.size();
+            sf::Vector2f edgeClosest = GetClosestPointOnLineSegment(point, vertices[i], vertices[next]);
+            
+            sf::Vector2f diff = point - edgeClosest;
+            float distance = diff.x * diff.x + diff.y * diff.y;
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPoint = edgeClosest;
+            }
         }
+        
+        return closestPoint;
+    }
+    else if (type == CollisionType::Circle) {
+        // 원의 경계점 계산
+        sf::Vector2f direction = point - center;
+        float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+        
+        if (distance > 0.001f) {
+            sf::Vector2f normalized = direction / distance;
+            return center + normalized * radius;
+        }
+        return center + sf::Vector2f(radius, 0.f);
+    }
+    else if (type == CollisionType::Rectangle) {
+        // 사각형의 경계점 계산
+        sf::Vector2f closest;
+        closest.x = std::max(bounds.position.x, std::min(point.x, bounds.position.x + bounds.size.x));
+        closest.y = std::max(bounds.position.y, std::min(point.y, bounds.position.y + bounds.size.y));
+        return closest;
     }
     
-    return closestPoint;
+    return center; // fallback
 }
 
 sf::Vector2f Collision::GetClosestPointOnLineSegment(const sf::Vector2f& point, const sf::Vector2f& lineStart, const sf::Vector2f& lineEnd) const {
