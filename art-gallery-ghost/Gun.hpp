@@ -28,13 +28,14 @@ public:
     std::string_view GetTag() const override { return tag; }
 
     void Fire(const sf::Vector2f& target);
-    void Render(sf::RenderWindow& window) const;
 
     bool HasActiveBullets() const;
     int GetAmmo() const { return currAmmo; }
     void Reload() { currAmmo = MAX_AMMO; }
 
     const std::vector<Bullet>& GetBullets() const { return bullets; }
+    
+    sf::CircleShape GetBulletShape() const;
 
     void DeactivateBullet(size_t index) {
         if(index < bullets.size()) bullets[index].active = false;

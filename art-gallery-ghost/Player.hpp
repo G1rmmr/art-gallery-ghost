@@ -18,4 +18,8 @@ public:
     Player(const float x, const float y);
 
     void Update(const float deltaTime) override;
+    
+    void RenderComponents(sf::RenderWindow& window);
+    void RenderFlashLight(sf::RenderWindow& window);
+    void RenderGun(sf::RenderWindow& window);
 };

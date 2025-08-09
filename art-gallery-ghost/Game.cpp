@@ -42,6 +42,9 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
 
     player = std::make_unique<Player>(0.f, 0.f);
+
+    darknessTexture = sf::RenderTexture({screenWidth, screenHeight});
+    lightTexture = sf::RenderTexture({screenWidth, screenHeight});
 }
 
 void Game::Run() {
@@ -110,6 +113,7 @@ void Game::handleEvents() {
                     auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
                     if(flashlight && flashlight->GetSwitch()) {
                         flashlight->AdjustRadius(delta);
+                        lastUserSetRadius = flashlight->GetRadius();
                         flashlight->AdjustWidth(-delta);
                         flashlight->AdjustAlpha(static_cast<int>(delta));
                     }
@@ -251,8 +255,53 @@ void Game::handleCollisions() {
             }
         }
 
-        if (flashlight && flashlight->GetSwitch())
-            checkFlashlightMapCollision(flashlight.get(), mapCollision.get(), playerMovement->GetPos());
+        if (flashlight && flashlight->GetSwitch()) {
+            clipFlashlightToMap(flashlight.get(), mapCollision.get(), playerMovement->GetPos());
+        }
+    }
+}
+
+void Game::clipFlashlightToMap(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos) {
+    // 사용자가 마지막으로 설정한 반지름을 기준으로 사용
+    float targetRadius = (lastUserSetRadius > 0) ? lastUserSetRadius : flashlight->GetRadius();
+    
+    sf::Vector2f flashlightCenter = playerPos + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+    
+    if (mapCollision->ContainsPoint(flashlightCenter)) {
+        float minDistance = targetRadius;
+        
+        float startAngle = flashlight->GetAngles();
+        float endAngle = startAngle + flashlight->GetWidth();
+        
+        const int rayCount = 10;
+
+        for (int i = 0; i < rayCount; ++i) {
+            float angle = startAngle + (endAngle - startAngle) * i / (rayCount - 1);
+            float radians = angle * PI / 180.0f;
+            
+            sf::Vector2f rayDirection(std::cos(radians), std::sin(radians));
+            
+            float minDist = 0.0f;
+            float maxDist = targetRadius;
+            
+            for (int j = 0; j < 20; ++j) {
+                float testDist = (minDist + maxDist) / 2.0f;
+                sf::Vector2f testPoint = flashlightCenter + rayDirection * testDist;
+                
+                if (mapCollision->ContainsPoint(testPoint)) {
+                    minDist = testDist;
+                } else {
+                    maxDist = testDist;
+                }
+            }
+            
+            minDistance = std::min(minDistance, minDist);
+        }
+        
+        float effectiveRadius = std::min(minDistance * 0.95f, targetRadius);
+        flashlight->SetRadius(effectiveRadius);
+    } else {
+        flashlight->SetRadius(targetRadius);
     }
 }
 
@@ -270,6 +319,83 @@ void Game::checkFlashlightMapCollision(FlashLight* flashlight, Collision* mapCol
     }
 }
 
+void Game::renderDarknessEffect() {
+    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+    auto playerMovement = std::dynamic_pointer_cast<Movement>(player->GetComponent("movement").lock());
+    
+    if (!playerMovement) return;
+
+    sf::RectangleShape darknessOverlay;
+    darknessOverlay.setSize(sf::Vector2f(static_cast<float>(screenWidth), static_cast<float>(screenHeight)));
+    darknessOverlay.setFillColor(sf::Color(0, 0, 0, 200));
+
+    sf::View originalView = window->getView();
+    window->setView(window->getDefaultView());
+
+    window->draw(darknessOverlay);
+
+    if(flashlight && flashlight->GetSwitch()) {
+        sf::Vector2f playerPos = playerMovement->GetPos();
+        sf::Vector2f flashlightCenter = playerPos + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+        
+        sf::Vector2i screenPosInt = window->mapCoordsToPixel(flashlightCenter, originalView);
+        sf::Vector2f screenPos(static_cast<float>(screenPosInt.x), static_cast<float>(screenPosInt.y));
+        
+        sf::VertexArray lightArea(sf::PrimitiveType::TriangleFan);
+        lightArea.append(sf::Vertex{screenPos, sf::Color::Transparent});
+        
+        const int pointCount = 50;
+        float startAngle = flashlight->GetAngles();
+        float fanWidth = flashlight->GetWidth();
+        float radius = flashlight->GetRadius() / zoomLevel;
+        
+        const float angleStep = fanWidth / static_cast<float>(pointCount - 1);
+        
+        for (int i = 0; i < pointCount; ++i) {
+            float angle = startAngle + i * angleStep;
+            float radians = angle * PI / 180.0f;
+            
+            sf::Vector2f point(
+                screenPos.x + radius * std::cos(radians),
+                screenPos.y + radius * std::sin(radians)
+            );
+            
+            lightArea.append(sf::Vertex{point, sf::Color::Transparent});
+        }
+        
+        sf::RenderStates lightStates;
+        lightStates.blendMode = sf::BlendMode(
+            sf::BlendMode::Factor::Zero,
+            sf::BlendMode::Factor::OneMinusSrcAlpha,
+            sf::BlendMode::Equation::Add
+        );
+        
+        window->draw(lightArea, lightStates);
+        
+        sf::VertexArray lightBorder(sf::PrimitiveType::TriangleFan);
+        sf::Color lightColor = sf::Color(255, 215, 0, static_cast<std::uint8_t>(flashlight->GetAlpha() / 4));
+        
+        lightBorder.append(sf::Vertex{screenPos, lightColor});
+        for (int i = 0; i < pointCount; ++i) {
+            float angle = startAngle + i * angleStep;
+            float radians = angle * PI / 180.0f;
+            
+            sf::Vector2f point(
+                screenPos.x + radius * std::cos(radians),
+                screenPos.y + radius * std::sin(radians)
+            );
+            
+            lightBorder.append(sf::Vertex{point, sf::Color(lightColor.r, lightColor.g, lightColor.b, 0)});
+        }
+        
+        sf::RenderStates additiveLightStates;
+        additiveLightStates.blendMode = sf::BlendAdd;
+        window->draw(lightBorder, additiveLightStates);
+    }
+
+    window->setView(originalView);
+}
+
 void Game::render() {
     for(const auto& object : objects) {
         if(auto render = std::dynamic_pointer_cast<Render>(
@@ -278,21 +404,16 @@ void Game::render() {
         }
     }
 
+    player->RenderComponents(*window);
+
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);
 
-    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
-    if(flashlight && flashlight->GetSwitch()) {
-        flashlight->Render(*window);
-    }
+    renderDarknessEffect();
 
     auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
-    if(gun) {
-        if(gun->HasActiveBullets())
-            gun->Render(*window);
-
+    if(gun)
         mouseCursorRender(gun.get());
-    }
 }
 
 void Game::mouseCursorRender(Gun * gun) {

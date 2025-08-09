@@ -38,6 +38,9 @@ namespace core {
         std::unique_ptr<sf::RenderWindow> window{nullptr};
         std::unique_ptr<sf::View> view{nullptr};
 
+        sf::RenderTexture darknessTexture;
+        sf::RenderTexture lightTexture;
+
         sf::Vector2f camPos{0.f, 0.f};
 
         std::string windowTitle;
@@ -47,6 +50,7 @@ namespace core {
 
         float deltaTime = 0.f;
         float zoomLevel = 1.0f;
+        float lastUserSetRadius = 0.0f;
 
         bool isFollowingPlayer = false;
 
@@ -57,5 +61,7 @@ namespace core {
         
         void handleCollisions();
         void checkFlashlightMapCollision(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos);
+        void clipFlashlightToMap(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos);
+        void renderDarknessEffect();
     };
 }

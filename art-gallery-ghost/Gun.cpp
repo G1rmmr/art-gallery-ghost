@@ -28,10 +28,7 @@ void Gun::Update(const float deltaTime) {
 }
 
 void Gun::Fire(const sf::Vector2f& target) {
-    if(currAmmo <= 0) {
-        std::cout << "OUT OF AMMO!" << std::endl;
-        return;
-    }
+    if(currAmmo <= 0) return;
 
     --currAmmo;
 
@@ -49,19 +46,13 @@ void Gun::Fire(const sf::Vector2f& target) {
     bullets.emplace_back(playerPos, direction);
 }
 
-void Gun::Render(sf::RenderWindow& window) const {
-    sf::CircleShape bulletShape(BULLET_RADIUS);
-    bulletShape.setFillColor(BULLET_COLOR);
-
-    for(const auto& bullet : bullets) {
-        if(bullet.active) {
-            bulletShape.setPosition(bullet.position);
-            window.draw(bulletShape);
-        }
-    }
-}
-
 bool Gun::HasActiveBullets() const {
     return std::any_of(bullets.begin(), bullets.end(),
         [](const Bullet& b) { return b.active; });
+}
+
+sf::CircleShape Gun::GetBulletShape() const {
+    sf::CircleShape bulletShape(BULLET_RADIUS);
+    bulletShape.setFillColor(BULLET_COLOR);
+    return bulletShape;
 }

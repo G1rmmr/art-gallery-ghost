@@ -43,3 +43,42 @@ void Player::Update(const float deltaTime) {
     this->components["gun"]->Update(deltaTime);
     this->components["flashlight"]->Update(deltaTime);
 }
+
+void Player::RenderComponents(sf::RenderWindow& window) {
+    RenderFlashLight(window);
+    RenderGun(window);
+}
+
+void Player::RenderFlashLight(sf::RenderWindow& window) {
+    auto flashlight = std::dynamic_pointer_cast<FlashLight>(this->GetComponent("flashlight").lock());
+    if (!flashlight || !flashlight->GetSwitch()) return;
+
+    sf::VertexArray lightGradient = flashlight->GetLightGradient();
+    sf::VertexArray innerLight = flashlight->GetInnerLight();
+    
+    if (lightGradient.getVertexCount() > 0) {
+        sf::RenderStates lightStates = flashlight->GetLightBlendMode();
+        window.draw(lightGradient, lightStates);
+    }
+    
+    if (innerLight.getVertexCount() > 0) {
+        sf::RenderStates innerStates = flashlight->GetInnerBlendMode();
+        window.draw(innerLight, innerStates);
+    }
+}
+
+void Player::RenderGun(sf::RenderWindow& window) {
+    auto gun = std::dynamic_pointer_cast<Gun>(this->GetComponent("gun").lock());
+    if (!gun || !gun->HasActiveBullets()) return;
+
+    const auto& bullets = gun->GetBullets();
+    sf::CircleShape bulletShape = gun->GetBulletShape();
+    
+    for (const auto& bullet : bullets) {
+        if (!bullet.active) continue;
+        
+        bulletShape.setPosition({bullet.position.x - Gun::BULLET_RADIUS,
+                               bullet.position.y - Gun::BULLET_RADIUS});
+        window.draw(bulletShape);
+    }
+}
