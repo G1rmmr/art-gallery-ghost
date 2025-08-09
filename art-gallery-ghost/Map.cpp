@@ -6,6 +6,7 @@
 
 #include "Map.hpp"
 #include "Render.hpp"
+#include "Collision.hpp"
 
 const sf::Color MAP_COLOR = sf::Color::White;
 const std::uint8_t EDGE_POINT = 6;
@@ -30,6 +31,7 @@ void Map::generateRandomWalls() {
     convex->setFillColor(MAP_COLOR);
 
     this->AddComponent(std::make_unique<Render>(this, std::move(convex)));
+    this->AddComponent(std::make_unique<Collision>(this));
 }
 
 void Map::generateRandomPoints(std::vector<sf::Vector2f>& points) const {

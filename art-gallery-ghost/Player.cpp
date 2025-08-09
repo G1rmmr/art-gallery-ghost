@@ -3,6 +3,7 @@
 #include "Controller.hpp"
 #include "Movement.hpp"
 #include "Render.hpp"
+#include "Collision.hpp"
 #include "Gun.hpp"
 #include "FlashLight.hpp"
 
@@ -22,6 +23,8 @@ Player::Player(const float x, const float y) {
         this,
         std::make_unique<sf::CircleShape>(shape)));
 
+    this->AddComponent(std::make_unique<Collision>(this));
+
     this->AddComponent(std::make_unique<Gun>(this));
     this->AddComponent(std::make_unique<FlashLight>(this));
 }
@@ -36,6 +39,7 @@ void Player::Update(const float deltaTime) {
     }
 
     this->components["movement"]->Update(deltaTime);
+    this->components["collision"]->Update(deltaTime);
     this->components["gun"]->Update(deltaTime);
     this->components["flashlight"]->Update(deltaTime);
 }

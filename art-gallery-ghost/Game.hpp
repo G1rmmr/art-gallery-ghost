@@ -9,7 +9,9 @@
 
 #include "Object.hpp"
 #include "Player.hpp"
+#include "Collision.hpp"
 #include "Gun.hpp"
+#include "FlashLight.hpp"
 
 namespace core {
     class Game {
@@ -52,5 +54,8 @@ namespace core {
         void update();
         void render();
         void mouseCursorRender(Gun* gun);
+        
+        void handleCollisions();
+        void checkFlashlightMapCollision(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos);
     };
 }

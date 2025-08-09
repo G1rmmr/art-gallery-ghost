@@ -4,6 +4,7 @@
 #include "Controller.hpp"
 #include "Render.hpp"
 #include "Movement.hpp"
+#include "Collision.hpp"
 #include "Gun.hpp"
 #include "FlashLight.hpp"
 
@@ -129,6 +130,8 @@ void Game::update() {
 
     player->Update(deltaTime);
     
+    handleCollisions();
+    
     const auto playerMovement = std::dynamic_pointer_cast<Movement>(
         player->GetComponent("movement").lock());
 
@@ -157,6 +160,114 @@ void Game::update() {
     }
 
     window->setView(*view);
+}
+
+void Game::handleCollisions() {
+    auto playerCollision = std::dynamic_pointer_cast<Collision>(player->GetComponent("collision").lock());
+    auto playerMovement = std::dynamic_pointer_cast<Movement>(player->GetComponent("movement").lock());
+    auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+
+    if (!playerCollision || !playerMovement) return;
+
+    for (const auto& object : objects) {
+        auto mapCollision = std::dynamic_pointer_cast<Collision>(object->GetComponent("collision").lock());
+        if (!mapCollision) continue;
+
+        sf::Vector2f currentPos = playerMovement->GetPos();
+        sf::Vector2f playerCenter = currentPos + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+        
+        if (!mapCollision->ContainsPoint(playerCenter)) {
+            sf::Vector2f closestBoundaryPoint = mapCollision->GetClosestPointOnBoundary(playerCenter);
+            sf::Vector2f toPlayer = playerCenter - closestBoundaryPoint;
+            float distanceToPlayer = std::sqrt(toPlayer.x * toPlayer.x + toPlayer.y * toPlayer.y);
+            
+            if (distanceToPlayer > 0.001f) {
+                sf::Vector2f normalToPlayer = toPlayer / distanceToPlayer;
+                
+                sf::Vector2f safePlayerCenter = closestBoundaryPoint + normalToPlayer * (Player::SHAPE_RADIUS + 2.0f);
+                
+                if (!mapCollision->ContainsPoint(safePlayerCenter)) {
+                    sf::Vector2f mapCenter = mapCollision->GetCenter();
+                    sf::Vector2f toMapCenter = mapCenter - closestBoundaryPoint;
+                    float distanceToCenter = std::sqrt(toMapCenter.x * toMapCenter.x + toMapCenter.y * toMapCenter.y);
+                    
+                    if (distanceToCenter > 0.001f) {
+                        sf::Vector2f normalToCenter = toMapCenter / distanceToCenter;
+                        safePlayerCenter = closestBoundaryPoint + normalToCenter * (Player::SHAPE_RADIUS + 5.0f);
+                    }
+                }
+                
+                sf::Vector2f safePlayerPos = safePlayerCenter - sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+                
+                playerMovement->SetPos(safePlayerPos);
+                sf::Vector2f currentVelocity = playerMovement->GetVel();
+                sf::Vector2f tangent = sf::Vector2f(-normalToPlayer.y, normalToPlayer.x);
+                float tangentSpeed = currentVelocity.x * tangent.x + currentVelocity.y * tangent.y;
+                sf::Vector2f slideVelocity = tangent * tangentSpeed;
+                playerMovement->SetVel(slideVelocity * 0.8f);
+            }
+        }
+        else {
+            sf::Vector2f velocity = playerMovement->GetVel();
+            sf::Vector2f nextPos = currentPos + velocity * deltaTime;
+            sf::Vector2f nextPlayerCenter = nextPos + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+            
+            if (!mapCollision->ContainsPoint(nextPlayerCenter)) {
+                sf::Vector2f closestBoundaryPoint = mapCollision->GetClosestPointOnBoundary(nextPlayerCenter);
+                sf::Vector2f toBoundary = closestBoundaryPoint - playerCenter;
+                float distanceToBoundary = std::sqrt(toBoundary.x * toBoundary.x + toBoundary.y * toBoundary.y);
+                
+                if (distanceToBoundary > 0.001f) {
+                    sf::Vector2f normalToBoundary = toBoundary / distanceToBoundary;
+                    
+                    float velocityAlongNormal = velocity.x * normalToBoundary.x + velocity.y * normalToBoundary.y;
+                    if (velocityAlongNormal < 0) {
+                        velocity = velocity - normalToBoundary * velocityAlongNormal;
+                        playerMovement->SetVel(velocity);
+                    }
+                    
+                    float minDistance = Player::SHAPE_RADIUS + 1.0f;
+                    if (distanceToBoundary < minDistance) {
+                        sf::Vector2f pushVector = normalToBoundary * (minDistance - distanceToBoundary);
+                        sf::Vector2f adjustedCenter = playerCenter + pushVector;
+                        sf::Vector2f adjustedPos = adjustedCenter - sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+                        playerMovement->SetPos(adjustedPos);
+                    }
+                }
+            }
+        }
+
+        if (gun) {
+            const auto& bullets = gun->GetBullets();
+            for (size_t i = 0; i < bullets.size(); ++i) {
+                if (!bullets[i].active) continue;
+
+                sf::Vector2f bulletCenter = bullets[i].position + sf::Vector2f(Gun::BULLET_RADIUS, Gun::BULLET_RADIUS);
+                
+                if (!mapCollision->ContainsPoint(bulletCenter)) {
+                    gun->DeactivateBullet(i);
+                }
+            }
+        }
+
+        if (flashlight && flashlight->GetSwitch())
+            checkFlashlightMapCollision(flashlight.get(), mapCollision.get(), playerMovement->GetPos());
+    }
+}
+
+void Game::checkFlashlightMapCollision(FlashLight* flashlight, Collision* mapCollision, const sf::Vector2f& playerPos) {
+    sf::Vector2f flashlightCenter = playerPos + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+    
+    if (mapCollision->ContainsPoint(flashlightCenter)) {
+        // 플래시라이트가 맵 내부에 있으면 정상 작동
+        // 향후 ray casting을 통해 플래시라이트 광선이 맵 경계와 만나는 지점을 
+        // 계산하여 광선의 최대 거리를 제한할 수 있음
+    }
+    else {
+        // 플래시라이트가 맵 외부에 있으면 (이론적으로는 발생하지 않아야 함)
+        // 플레이어가 이미 맵 외부로 나간 상태이므로 플래시라이트도 제한적으로 작동
+    }
 }
 
 void Game::render() {
