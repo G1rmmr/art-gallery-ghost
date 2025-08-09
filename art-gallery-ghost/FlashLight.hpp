@@ -5,69 +5,67 @@
 #include <memory>
 #include <algorithm>
 
-namespace core {
-    class FlashLight : public Component {
-    public:
-        constexpr static sf::Color FLASH_COLOR = sf::Color{255, 215, 0};
-        constexpr static float MAX_RADIUS = 3000.f;
-        constexpr static float MIN_RADIUS = 500.f;
-        constexpr static float MAX_FAN_WIDTH = 100.f;
-        constexpr static float MIN_FAN_WIDTH = 10.f;
-        constexpr static std::uint8_t MAX_ALPHA = 255;
-        constexpr static std::uint8_t MIN_ALPHA = 64;
-        constexpr static std::uint8_t WHEEL_LEVEL = 12;
+class FlashLight : public core::Component{
+public:
+    constexpr static sf::Color FLASH_COLOR = sf::Color{255, 215, 0};
+    constexpr static float MAX_RADIUS = 3000.f;
+    constexpr static float MIN_RADIUS = 500.f;
+    constexpr static float MAX_FAN_WIDTH = 100.f;
+    constexpr static float MIN_FAN_WIDTH = 10.f;
+    constexpr static std::uint8_t MAX_ALPHA = 255;
+    constexpr static std::uint8_t MIN_ALPHA = 64;
+    constexpr static std::uint8_t WHEEL_LEVEL = 12;
 
-        FlashLight(Object* obj) : Component(obj) {}
+    FlashLight(core::Object * obj) : core::Component(obj) {}
 
-        void Update(const float deltaTime) override {};
-        std::string_view GetTag() const override { return tag; }
+    void Update(const float deltaTime) override {};
+    std::string_view GetTag() const override { return tag; }
 
-        bool GetSwitch() const { return isSwitchOn; }
-        void ToggleSwitch() { isSwitchOn = !isSwitchOn; }
+    bool GetSwitch() const { return isSwitchOn; }
+    void ToggleSwitch() { isSwitchOn = !isSwitchOn; }
 
-        void SetWidth(const float width) {
-            fanWidth = std::max(MIN_FAN_WIDTH, std::min(width, MAX_FAN_WIDTH));
-        }
+    void SetWidth(const float width) {
+        fanWidth = std::max(MIN_FAN_WIDTH, std::min(width, MAX_FAN_WIDTH));
+    }
 
-        void AdjustWidth(const float delta) {
-            fanWidth = std::max(MIN_FAN_WIDTH, 
-                std::min(fanWidth + delta * (MAX_FAN_WIDTH - MIN_FAN_WIDTH) / WHEEL_LEVEL, MAX_FAN_WIDTH));
-        }
+    void AdjustWidth(const float delta) {
+        fanWidth = std::max(MIN_FAN_WIDTH,
+            std::min(fanWidth + delta * (MAX_FAN_WIDTH - MIN_FAN_WIDTH) / WHEEL_LEVEL, MAX_FAN_WIDTH));
+    }
 
-        void SetRadius(const float radius) {
-            this->radius = std::max(MIN_RADIUS, std::min(radius, MAX_RADIUS));
-        }
+    void SetRadius(const float radius) {
+        this->radius = std::max(MIN_RADIUS, std::min(radius, MAX_RADIUS));
+    }
 
-        void AdjustRadius(const float delta) {
-            radius = std::max(MIN_RADIUS,
-                std::min(radius + delta * (MAX_RADIUS - MIN_RADIUS) / WHEEL_LEVEL, MAX_RADIUS));
-        }
+    void AdjustRadius(const float delta) {
+        radius = std::max(MIN_RADIUS,
+            std::min(radius + delta * (MAX_RADIUS - MIN_RADIUS) / WHEEL_LEVEL, MAX_RADIUS));
+    }
 
-        void SetAngles(const float start) {
-            startAngle = start - fanWidth / 2.0f;
-        }
+    void SetAngles(const float start) {
+        startAngle = start - fanWidth / 2.0f;
+    }
 
-        void SetAlpha(const std::uint8_t alpha) {
-            this->alpha = std::max(MIN_ALPHA, std::min(alpha, MAX_ALPHA));
-        }
+    void SetAlpha(const std::uint8_t alpha) {
+        this->alpha = std::max(MIN_ALPHA, std::min(alpha, MAX_ALPHA));
+    }
 
-        void AdjustAlpha(const int delta) {
-            int newAlpha = static_cast<int>(alpha) + delta * (MAX_ALPHA - MIN_ALPHA) / WHEEL_LEVEL;
-            alpha = std::max(static_cast<int>(MIN_ALPHA), std::min(newAlpha, static_cast<int>(MAX_ALPHA)));
-        }
+    void AdjustAlpha(const int delta) {
+        int newAlpha = static_cast<int>(alpha) + delta * (MAX_ALPHA - MIN_ALPHA) / WHEEL_LEVEL;
+        alpha = std::max(static_cast<int>(MIN_ALPHA), std::min(newAlpha, static_cast<int>(MAX_ALPHA)));
+    }
 
-        void Render(sf::RenderWindow& window) const;
+    void Render(sf::RenderWindow& window) const;
 
-    private:
-        constexpr static std::string_view tag = "flashlight";
-        constexpr static int POINT_COUNT = 30;
+private:
+    constexpr static std::string_view tag = "flashlight";
+    constexpr static int POINT_COUNT = 30;
 
-        float fanWidth = MIN_FAN_WIDTH;
-        float radius = MAX_RADIUS;
-        float startAngle = 0.f;
-        std::uint8_t alpha = MAX_ALPHA;
-        bool isSwitchOn = false;
+    float fanWidth = MIN_FAN_WIDTH;
+    float radius = MAX_RADIUS;
+    float startAngle = 0.f;
+    std::uint8_t alpha = MAX_ALPHA;
+    bool isSwitchOn = false;
 
-        sf::VertexArray getVertices(const sf::Vector2f pos, const sf::Color& color) const;
-    };
-}
+    sf::VertexArray getVertices(const sf::Vector2f pos, const sf::Color& color) const;
+};

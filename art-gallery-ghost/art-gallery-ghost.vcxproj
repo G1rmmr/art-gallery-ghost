@@ -131,6 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Collision.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="FlashLight.cpp" />
     <ClCompile Include="Game.cpp" />
@@ -140,6 +141,7 @@
     <ClCompile Include="Player.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Collision.hpp" />
     <ClInclude Include="Component.hpp" />
     <ClInclude Include="Controller.hpp" />
     <ClInclude Include="FlashLight.hpp" />
