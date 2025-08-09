@@ -1,34 +1,25 @@
 #include "FlashLight.hpp"
-
-#include "Controller.hpp"
 #include "Movement.hpp"
-#include "Render.hpp"
+#include "Object.hpp"
+#include "Player.hpp"
+
+#include <cmath>
 
 using namespace core;
 
 constexpr float PI = 3.141592f;
-constexpr int POINT_COUNT = 30;
 
-FlashLight::FlashLight(const float x, const float y, const float startAngle)
-    : startAngle(startAngle) {
-    this->AddComponent(std::make_unique<Movement>(
-        this,
-        sf::Vector2f{x, y}));
+void FlashLight::Render(sf::RenderWindow& window) const {
+    if(!isSwitchOn) return;
 
-    this->AddComponent(std::make_unique<Render>(
-        this,
-        std::make_unique<sf::VertexArray>(getVertices({x, y}, FLASH_COLOR))));
-}
+    auto movement = std::dynamic_pointer_cast<Movement>(owner->GetComponent("movement").lock());
+    if(!movement) return;
 
-void FlashLight::Update(const float deltaTime) {
-    auto movement = std::dynamic_pointer_cast<Movement>(this->GetComponent("movement").lock());
-    auto render = std::dynamic_pointer_cast<Render>(this->GetComponent("render").lock());
-
-    if(movement && render) {
-        sf::VertexArray* vertices = render->GetShape<sf::VertexArray>();
-        sf::Color color = sf::Color(FLASH_COLOR.r, FLASH_COLOR.g, FLASH_COLOR.b, alpha);
-        if(vertices) *vertices = getVertices(movement->GetPos(), color);
-    }
+    sf::Vector2f pos = movement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS);
+    sf::Color color = sf::Color(FLASH_COLOR.r, FLASH_COLOR.g, FLASH_COLOR.b, alpha);
+    
+    sf::VertexArray vertices = getVertices(pos, color);
+    window.draw(vertices);
 }
 
 sf::VertexArray FlashLight::getVertices(const sf::Vector2f pos, const sf::Color& color) const {

@@ -4,6 +4,8 @@
 #include "Controller.hpp"
 #include "Render.hpp"
 #include "Movement.hpp"
+#include "Gun.hpp"
+#include "FlashLight.hpp"
 
 #include <iostream>
 #include <algorithm>
@@ -38,13 +40,6 @@ Game::Game(const std::string& title, const std::uint16_t width, const std::uint1
 
     objects.emplace_back(std::make_unique<Map>(MAP_SIZE));
 
-    sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
-    sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
-    sf::Vector2f direction = worldMousePos - sf::Vector2f(0.f, 0.f);
-
-    float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-    flash = std::make_unique<FlashLight>(0.f, 0.f, angle);
-
     player = std::make_unique<Player>(0.f, 0.f);
 }
 
@@ -72,6 +67,11 @@ void Game::handleEvents() {
             if(keyPressed->scancode == sf::Keyboard::Scan::Escape)
                 window->close();
 
+            else if(keyPressed->scancode == sf::Keyboard::Scan::R) {
+                auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+                if(gun) gun->Reload();
+            }
+
             else if(keyPressed->scancode == sf::Keyboard::Scan::Space)
                 isFollowingPlayer = true;
         }
@@ -80,8 +80,18 @@ void Game::handleEvents() {
                 isFollowingPlayer = false;
         }
         else if(const auto* mousePressed = event->getIf<sf::Event::MouseButtonPressed>()) {
-            if(mousePressed->button == sf::Mouse::Button::Right)
-                flash->ToggleSwitch();
+            if(mousePressed->button == sf::Mouse::Button::Left) {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+                sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
+
+                auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+                if(gun) gun->Fire(worldMousePos);
+            }
+
+            if(mousePressed->button == sf::Mouse::Button::Right) {
+                auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+                if(flashlight) flashlight->ToggleSwitch();
+            }
         }
         else if(const auto* mouseWheelScrolled = event->getIf<sf::Event::MouseWheelScrolled>()) {
             if(mouseWheelScrolled->wheel == sf::Mouse::Wheel::Vertical) {
@@ -95,10 +105,13 @@ void Game::handleEvents() {
                         static_cast<float>(screenWidth) * zoomLevel,
                         static_cast<float>(screenHeight) * zoomLevel});
                 }
-                else if(flash->GetSwitch()) {
-                    flash->AdjustRadius(delta);
-                    flash->AdjustWidth(-delta);
-                    flash->AdjustAlpha(static_cast<int>(delta));
+                else {
+                    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+                    if(flashlight && flashlight->GetSwitch()) {
+                        flashlight->AdjustRadius(delta);
+                        flashlight->AdjustWidth(-delta);
+                        flashlight->AdjustAlpha(static_cast<int>(delta));
+                    }
                 }
             }
         }
@@ -115,14 +128,11 @@ void Game::update() {
         object->Update(deltaTime);
 
     player->Update(deltaTime);
-
+    
     const auto playerMovement = std::dynamic_pointer_cast<Movement>(
         player->GetComponent("movement").lock());
 
-    const auto flashMovement = std::dynamic_pointer_cast<Movement>(
-        flash->GetComponent("movement").lock());
-
-    if(playerMovement && flashMovement) {
+    if(playerMovement) {
         if(isFollowingPlayer) {
             sf::Vector2f playerPos = playerMovement->GetPos();
             sf::Vector2f direction = playerPos - camPos;
@@ -135,21 +145,21 @@ void Game::update() {
             view->setCenter(camPos);
         }
 
-        flashMovement->SetPos(playerMovement->GetPos() +
-            sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
-
         sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
         sf::Vector2f worldMousePos = window->mapPixelToCoords(mousePos);
-        sf::Vector2f direction = worldMousePos - playerMovement->GetPos();
+        sf::Vector2f direction = worldMousePos 
+            - (playerMovement->GetPos() + sf::Vector2f(Player::SHAPE_RADIUS, Player::SHAPE_RADIUS));
 
         float angle = std::atan2(direction.y, direction.x) * 180.0f / PI;
-        flash->SetAngles(angle);
+        
+        auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+        if(flashlight) flashlight->SetAngles(angle);
     }
-    flash->Update(deltaTime);
+
     window->setView(*view);
 }
 
-void core::Game::render() {
+void Game::render() {
     for(const auto& object : objects) {
         if(auto render = std::dynamic_pointer_cast<Render>(
             object->GetComponent("render").lock())) {
@@ -157,10 +167,65 @@ void core::Game::render() {
         }
     }
 
-    if(flash->GetSwitch())
-        std::dynamic_pointer_cast<Render>(
-            flash->GetComponent("render").lock())->Draw(*window);
-
     std::dynamic_pointer_cast<Render>(
         player->GetComponent("render").lock())->Draw(*window);
+
+    auto flashlight = std::dynamic_pointer_cast<FlashLight>(player->GetComponent("flashlight").lock());
+    if(flashlight && flashlight->GetSwitch()) {
+        flashlight->Render(*window);
+    }
+
+    auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+    if(gun) {
+        if(gun->HasActiveBullets())
+            gun->Render(*window);
+
+        mouseCursorRender(gun.get());
+    }
+}
+
+void Game::mouseCursorRender(Gun * gun) {
+    sf::Vector2i mousePos = sf::Mouse::getPosition(*window);
+    sf::Vector2f screenMousePos = static_cast<sf::Vector2f>(mousePos);
+
+    const float GAUGE_RADIUS = 20.f;
+    const float GAUGE_THICKNESS = 4.f;
+    const int POINT_COUNT = 60;
+
+    int currentAmmo = gun->GetAmmo();
+    float ammoRatio = static_cast<float>(currentAmmo) / Gun::MAX_AMMO;
+
+    sf::VertexArray gauge(sf::PrimitiveType::TriangleStrip, (static_cast<std::size_t>(POINT_COUNT * ammoRatio) + 1) * 2);
+
+    sf::Color gaugeColor = sf::Color(
+        static_cast<std::uint8_t>(255 * (1.0f - ammoRatio)),
+        static_cast<std::uint8_t>(255 * ammoRatio),
+        0,
+        200
+    );
+
+    for(int i = 0; i <= POINT_COUNT * ammoRatio; ++i) {
+        float angle = (static_cast<float>(i) / POINT_COUNT) * 2.0f * PI - PI / 2.0f;
+
+        sf::Vector2f outerPoint(
+            screenMousePos.x + std::cos(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f),
+            screenMousePos.y + std::sin(angle) * (GAUGE_RADIUS + GAUGE_THICKNESS / 2.0f)
+        );
+
+        sf::Vector2f innerPoint(
+            screenMousePos.x + std::cos(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f),
+            screenMousePos.y + std::sin(angle) * (GAUGE_RADIUS - GAUGE_THICKNESS / 2.0f)
+        );
+
+        gauge[static_cast<size_t>(i) * 2].position = outerPoint;
+        gauge[static_cast<size_t>(i) * 2].color = gaugeColor;
+        gauge[static_cast<size_t>(i) * 2 + 1].position = innerPoint;
+        gauge[static_cast<size_t>(i) * 2 + 1].color = gaugeColor;
+    }
+
+    sf::View originalView = window->getView();
+    window->setView(window->getDefaultView());
+    
+    window->draw(gauge);
+    window->setView(originalView);
 }

@@ -134,6 +134,7 @@
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="FlashLight.cpp" />
     <ClCompile Include="Game.cpp" />
+    <ClCompile Include="Gun.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Map.cpp" />
     <ClCompile Include="Player.cpp" />
@@ -143,6 +144,7 @@
     <ClInclude Include="Controller.hpp" />
     <ClInclude Include="FlashLight.hpp" />
     <ClInclude Include="Game.hpp" />
+    <ClInclude Include="Gun.hpp" />
     <ClInclude Include="Map.hpp" />
     <ClInclude Include="Movement.hpp" />
     <ClInclude Include="Object.hpp" />
