@@ -67,6 +67,11 @@ void Game::handleEvents() {
             if(keyPressed->scancode == sf::Keyboard::Scan::Escape)
                 window->close();
 
+            else if(keyPressed->scancode == sf::Keyboard::Scan::R) {
+                auto gun = std::dynamic_pointer_cast<Gun>(player->GetComponent("gun").lock());
+                if(gun) gun->Reload();
+            }
+
             else if(keyPressed->scancode == sf::Keyboard::Scan::Space)
                 isFollowingPlayer = true;
         }
